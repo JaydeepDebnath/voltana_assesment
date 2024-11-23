@@ -42,7 +42,7 @@ export default {
     methods: {
         async handleSignUp(){
             if(this.password !== this.confirmPassword){
-                this.errorMessage = 'Password does npot match!';
+                this.errorMessage = 'Password does not match!';
                 rewturn;
             }
             this.isSubmitting = true;
@@ -61,6 +61,7 @@ export default {
             }
         }
     }
+}
 </script>
 
 <style scoped>
