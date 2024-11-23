@@ -7,7 +7,7 @@ const app = express()
 
 app.use(cors({
     origin:process.env.CORS_ORIGIN,
-    credentials: true,
+    credentials: true
 }))
 
 app.use(express.json({limit: "16kb"}))
@@ -17,11 +17,11 @@ app.use(cookieParser())
 
 
 // import routes 
-
+import userRouter from './routes/user.routes.js';
 
 
 // rtoutes declare 
-app.use('/api/v1/users',)
+app.use('/api/v1/user',userRouter)
 
 
 export {app} 

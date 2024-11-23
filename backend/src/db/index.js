@@ -1,16 +1,10 @@
 import { Sequelize } from "sequelize";
 import {DB_NAME} from "../constants.js"
 
-const connectionString = process.env.PG_CONNECTION_STRING
 
 const connectDB = async () => {
-    const client = new Sequelize({
-        host:process.env.PG_HOST,
-        port:process.env.PG_PORT,
-        user:process.env.PG_USER,
-        password:process.env.PG_PASSWORD,
-        database:process.env.PG_DATABASE,
-        connectionString: connectionString,
+    const client = new Sequelize("demodb","postgres","8421",{
+        host:"localhost",
         dialect: 'postgres',
     });
 
@@ -23,5 +17,7 @@ const connectDB = async () => {
         throw err;
     }
 }
+
+
 
 export default connectDB;

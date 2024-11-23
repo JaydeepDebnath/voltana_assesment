@@ -1,15 +1,17 @@
 import {asyncHandler} from '../utils/asyncHandler.js';
 import { ApiError } from "../utils/ApiError.js";
-import {User} from '../models/user.models.js';
-import {ApiResponse, APiResponse} from '../utils/ApiResponce.js';
+import  defineUserModel from '../models/user.models.js';
+import {ApiResponse} from '../utils/ApiResponce.js';
 
 import jwt from 'jsonwebtoken';
-import {response} from 'express';
 
 
 const generateAccessAndRefreshToken = async(userId) => {
     try {
-        const user = await User.findOne(userId)
+
+        const User = await defineUserModel();
+
+        const user = await User.findOne({ where: { id: userId } })
         
         if(!user) {
             throw new ApiError(404,"User not found");
@@ -39,6 +41,8 @@ const generateAccessAndRefreshToken = async(userId) => {
 
 const registerUser = asyncHandler(async (req,res) => {
     const {id,username,email,password,contactNumber,role } = req.body
+
+    const User = await defineUserModel();
 
     if(
         [id,username,email,password,contactNumber,role].some((field) => field?.trim() === "")
@@ -83,6 +87,8 @@ const registerUser = asyncHandler(async (req,res) => {
 const loginUser = asyncHandler(async(req,res) => {
     const {email,username,password} = req.body
 
+    const User = await defineUserModel();
+
     if(!username && !email){
         throw new ApiError(400,"Username or [assword is required")
     }
@@ -125,6 +131,7 @@ const loginUser = asyncHandler(async(req,res) => {
 })
 
 const logoutUser = asyncHandler(async (req,res)=>{
+    const User = await defineUserModel();
     const [update] = await User.update(
         {refreshToken:null},
         {
@@ -152,6 +159,8 @@ const logoutUser = asyncHandler(async (req,res)=>{
 
 const refreshAccessToken = asyncHandler(async(req,res) => {
     const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken;
+    
+    const User = await defineUserModel();
 
     if (!incomingRefreshToken) {
         throw new ApiError(401, "Invalid request: No refresh token provided");
@@ -197,6 +206,8 @@ const refreshAccessToken = asyncHandler(async(req,res) => {
 })
 
 const getAllUsers = asyncHandler(async (req,res) => {
+    const User = await defineUserModel();
+    
     const users = await User.findAll({
         attributes:{exclude:['password']}
     });
@@ -218,6 +229,8 @@ const getAllUsers = asyncHandler(async (req,res) => {
 
 const updateAccountDetails = asyncHandler(async (req,es) =>{
     const {username,email} = req.body;
+
+    const User = await defineUserModel();
 
     if(!username && !email){
         throw new ApiError(400,"Full Name or Email is required")
@@ -253,6 +266,7 @@ return res
 })
 
 const deleteUser = asyncHandler(async (req,res) => {
+    const User = await defineUserModel();
     const userId = req.user.id;
 
     const deleteUserCount = await User.destroy({
@@ -275,6 +289,7 @@ const deleteUser = asyncHandler(async (req,res) => {
 
 const inviteNewUser = asyncHandler(async(req,res) => {
     const { username,email,password,role } = req.body;
+    const User = await defineUserModel();
 
     if(!username || !email || !password || !role){
         throw new ApiError(400,"Username,email,role and password is reequired")
