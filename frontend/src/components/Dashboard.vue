@@ -31,9 +31,10 @@
                 return this.$store.getters.getError;
             }
         },
-        async created(){
-            await this.fetchUsers();
-        },methods :{
+        created(){
+             this.fetchUsers();
+        },
+        methods :{
             async fetchUsers(){
                 try {
                     this.users = await this.$store.dispatch('getUsers');
@@ -42,7 +43,7 @@
                 }
             },
             async deleteUser(){
-                if(confirm('Are you sure want todelete this user?')){
+                if(confirm('Are you sure want to delete this user?')){
                     try {
                         await this.$store.dispatch('deleteAccount');
                         this.users = this.user.filter(user => user.id !== id)
@@ -74,11 +75,29 @@
   max-width: 800px;
   margin: 0 auto;
   padding: 20px;
+  box-sizing: border-box;
 }
 .user {
   margin: 10px 0;
 }
 button {
   margin-left: 10px;
+  padding: 8px 16px; 
+  border: none; 
+  background-color: #007BFF; 
+  color: white;
+  font-size: 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+.error {
+    color: #ff3b30;
+  font-size: 14px;
+  margin-top: 20px;
+  font-weight: bold;
+  background-color: #f8d7da;
+  padding: 10px;
+  border-radius: 5px;
 }
 </style>

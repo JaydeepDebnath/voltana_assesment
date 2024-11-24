@@ -1,5 +1,7 @@
 import { createStore } from 'vuex';
 
+const connectionString = "http://localhost:8001/api/v1/user"
+
 export default createStore({
     state:{
         user : null,
@@ -59,7 +61,7 @@ export default createStore({
         async login({commit,dispatch},credentials){
             commit('setLoading',true);
             try {
-                const response = await fetch("http://localhost:8000/api/v1/user/login",{
+                const response = await fetch(`${connectionString}/login`,{
                     method : 'POST',
                     headers: {
                         'Content-Type':'application/json',
@@ -86,7 +88,7 @@ export default createStore({
 
         async logout({commit}){
             try {
-                await fetch("http://localhost:8000/api/v1/user/logout",{
+                await fetch(`${connectionString}/logout`,{
                     method:'POST',
                     headers:{
                         'Authorization': `Bearer ${this.state.token}`,
@@ -102,7 +104,7 @@ export default createStore({
 
         async refreshToken ({commit,state}){
             try {
-                const response = await fetch("http://localhost:8000/api/v1/user/refresh-token",{
+                const response = await fetch(`${connectionString}/refresh-token`,{
                     method:"POST",
                     headers:{
                         'Authorization': `Bearer ${state.token}`,
@@ -122,7 +124,7 @@ export default createStore({
         async getUsers({commit,state}){
             commit('setLoading',true);
             try {
-                const response = await fetch("http://localhost:8000/api/v1/user/users",{
+                const response = await fetch(`${connectionString}/users`,{
                     method:'GET',
                     headers:{
                         'Authorization': `Bearer ${state.token}`,
@@ -147,7 +149,7 @@ export default createStore({
             commit('setLoading',true);
 
             try {
-                const response = await fetch("http://ocalhost:8000/api/v1/user/update",{
+                const response = await fetch(`${connectionString}/update`,{
                     method:'PATCH',
                     headers:{
                         'Authorization': `Bearer ${state.token}`,
@@ -175,7 +177,7 @@ export default createStore({
 
         async deleteAccount({commit,state}){
             try {
-                const response = await fetch("http://localhost:8000/api/v1/user/delete-account",{
+                const response = await fetch(`${connectionString}/delete-account`,{
                     method:'DELETE',
                     headers:{
                         'Authorization': `Bearer ${state.token}`,
@@ -198,7 +200,7 @@ export default createStore({
 
         async inviteUser({commit},email){
             try {
-                const response = await fetch("http://localhost:8000/api/v1/user/invite-user",{
+                const response = await fetch(`${connectionString}/invite-user`,{
                     method:'POST',
                     headers:{
                         'Content-Type' :'application/json',
@@ -213,6 +215,30 @@ export default createStore({
                     return data.message;
                 } else {
                     throw new Error(data.message || 'Failed to invite user')
+                }
+                
+            } catch (error) {
+                commit('setError', error.message);
+            }
+        },
+
+        async setPassword({commit},{token, password}){
+            try {
+                const response = await fetch(`${connectionString}/set-password`,{
+                    method:'POST',
+                    headers:{
+                        'Content-Type' :'application/json',
+                    },
+                    body : JSON.stringify({token, password}),
+                });
+
+                const data = await response.json();
+
+                if(response.ok){
+                    commit('setError',null);
+                    return data.message;
+                } else {
+                    throw new Error(data.message || 'Failed to set password')
                 }
                 
             } catch (error) {

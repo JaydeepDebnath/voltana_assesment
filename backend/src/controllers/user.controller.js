@@ -2,7 +2,8 @@ import {asyncHandler} from '../utils/asyncHandler.js';
 import { ApiError } from "../utils/ApiError.js";
 import  defineUserModel from '../models/user.models.js';
 import {ApiResponse} from '../utils/ApiResponce.js';
-import bcrypt from 'bcrypt'
+import bcrypt from 'bcrypt';
+import sendInvitationEmail from '../utils/emailService.js';
 import {Op} from 'sequelize';
 import Sequelize from 'sequelize';
 
@@ -23,7 +24,7 @@ const generateAccessAndRefreshToken = async(userId) => {
         const accessToken = jwt.sign(
             {id:user.id},
             process.env.JWT_SECRET,
-            {expiresIn:'15m'}
+            {expiresIn:'60m'}
         );
 
         const refreshToken = jwt.sign(
@@ -321,28 +322,64 @@ const inviteNewUser = asyncHandler(async(req,res) => {
         throw new ApiError(400, "User with this email already exists");
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const token = jwt.sign({email},process.env.JWT_SECRET,{expiresIn: '24h'})
 
-    const newUser = await User.create({
+    await User.create({
         name,
         email,
-        password: hashedPassword 
+        invitationToken:token,
     });
 
-    const newUserData = newUser.get();
-    delete newUserData.password;
-
+    const inviteLink = `${process.env.FRONTEND_URL}/set-password?token=${token}`
+    await sendInvitationEmail(email,inviteLink);
     return res
     .status(201)
     .json(
         new ApiResponse(
             201,
-            newUserData,
-            "New user invited successfully"
+            "Invitation sent successfully. Check your email to set your password."
         )
     );
 
-}) 
+})
+
+const setPassword = asyncHandler(async (req,res) => {
+    const { token,password }= req.body;
+
+    let decodedToken;
+
+    try {
+        decodedToken = jwt.verify(token,process.env.JWT_SECRET);
+    } catch (error) {
+        throw new ApiError(400, "Invalid or expired token."); 
+    }
+
+    const User = await defineUserModel();
+
+    const user = await User.findOne({
+        where:{
+            email:decodedToken.email
+        }
+    })
+
+    if(!user){
+        throw new ApiError(404,"User not found");
+    }
+
+    const hashedPassword = await bcrypt.hash(password,10)
+
+    user.password = hashedPassword;
+    await user.save();
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(
+            200,
+            "Password set successfully. You can now log in."
+        )
+    )
+})
 
 
 export {
@@ -355,4 +392,5 @@ export {
     updateAccountDetails,
     deleteUser,
     inviteNewUser,
+    setPassword
 }

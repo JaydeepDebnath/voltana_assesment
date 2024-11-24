@@ -8,6 +8,7 @@ import {
     updateAccountDetails,
     deleteUser,
     inviteNewUser,
+    setPassword,
 } from '../controllers/user.controller.js';
 import {verifyJWT} from '../middlewares/auth.middleware.js';
 
@@ -16,6 +17,7 @@ const router = Router()
 router.route("/register").post(registerUser)
 router.route("/login").post(loginUser)
 router.route("/invite-user").post(inviteNewUser)
+router.route("/set-password").post(setPassword)
 
 //private routes
 router.route("/logout").post(verifyJWT,logoutUser)
