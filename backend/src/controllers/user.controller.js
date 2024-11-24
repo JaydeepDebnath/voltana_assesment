@@ -2,6 +2,9 @@ import {asyncHandler} from '../utils/asyncHandler.js';
 import { ApiError } from "../utils/ApiError.js";
 import  defineUserModel from '../models/user.models.js';
 import {ApiResponse} from '../utils/ApiResponce.js';
+import bcrypt from 'bcrypt'
+import {Op} from 'sequelize';
+import Sequelize from 'sequelize';
 
 import jwt from 'jsonwebtoken';
 
@@ -11,27 +14,27 @@ const generateAccessAndRefreshToken = async(userId) => {
 
         const User = await defineUserModel();
 
-        const user = await User.findOne({ where: { id: userId } })
+        const user = await User.findByPk(userId)
         
         if(!user) {
             throw new ApiError(404,"User not found");
         }
 
         const accessToken = jwt.sign(
-            {_id:user.id},
+            {id:user.id},
             process.env.JWT_SECRET,
             {expiresIn:'15m'}
         );
 
         const refreshToken = jwt.sign(
-            {_id:user.id},
+            {id:user.id},
             process.env.JWT_SECRET,
             {expiresIn:'7d'}
         );
 
         user.refreshToken = refreshToken;
 
-        await user.save({validateBEforeSave:false});
+        await user.save({validateBeforeSave:false});
 
         return {accessToken,refreshToken}
     } catch (error) {
@@ -40,75 +43,89 @@ const generateAccessAndRefreshToken = async(userId) => {
 }
 
 const registerUser = asyncHandler(async (req,res) => {
-    const {id,username,email,password,contactNumber,role } = req.body
+    const {name,email,password,contactNumber,role } = req.body
 
     const User = await defineUserModel();
 
     if(
-        [id,username,email,password,contactNumber,role].some((field) => field?.trim() === "")
+        [name,email,password,contactNumber,role].some((field => !field.trim()))
     ){
         throw new ApiError(400,"All fields are required")
     }
 
     const existedUser = await User.findOne({
-        $or:[{username},{email}]
+       where:{
+        [Sequelize.Op.or]: [{ email }, { contactNumber }]
+       }
     })
     if(existedUser) {
-        throw new ApiError(409,"User with this email already exsists")
+        throw new ApiError(409,"User with this email or contact number already exists")
     }
-
+    // console.log({...User})
     const hashedPassword = await bcrypt.hash(password,10);
-
-    const user = await User.create({
-        id,
-        username:username.toLowerCase(),
-        email,
-        contactNumber,
-        role,
-        password:hashedPassword,
-    })
-
-
-    const createdUser = await User.findOne(user.id).select(
-        "-password -refreshToken"
-    )
-
-    if(!createdUser){
-        throw new ApiError(500,"Something went wrong while registering user")
-    }
-
+   try {
+     const user = await User.create({
+         name,
+         email,
+         contactNumber,
+         role,
+         password:hashedPassword,
+     })
+ 
+     // console.log({...user})
+ 
+     const createdUser = await User.findByPk(user.id,{
+            attributes:{exclude:['password','refreshToken']}
+     });
+ 
+     if(!createdUser){
+         throw new ApiError(500,"Something went wrong while registering user")
+     }
+ 
+   } catch (error) {
+        throw new ApiError(500,error.message)
+   }
     return res
     .status(201)
-    .jsion(
+    .json(
         new ApiResponse(200,"User registered successfully")
     )
 })
 
 const loginUser = asyncHandler(async(req,res) => {
-    const {email,username,password} = req.body
+    const {email,contactNumber,password} = req.body;
+
+    if (!password) {
+        throw new ApiError(400, "Password is required");
+    }
 
     const User = await defineUserModel();
 
-    if(!username && !email){
-        throw new ApiError(400,"Username or [assword is required")
+    if(!email && !contactNumber){
+        throw new ApiError(400,"Email or Contact Number is required")
     }
 
     const user = await User.findOne({
         where:{
-            [Op.or]:[{username},{email}]
-        }
+            [Sequelize.Op.or]:[{email},{contactNumber}]
+        },
+        attributes:{exclude:['refreshToken']}
     });
 
     if(!user){
         throw new ApiError(404,"User does not exsists")
     }
-    const isPasswordValid = await  user.isPasswordCorrect(password)
+
+    if (!user.password) {
+        throw new ApiError(404, "Password not found for the user");
+    }
+
+    const isPasswordValid = await bcrypt.compare(password,user.password);
     if(!isPasswordValid){
         throw new ApiError(401,"Invalid user credentials")
     }
 
     const {accessToken,refreshToken} = await generateAccessAndRefreshToken(user.id)
-    .select("-password refreshToken")
 
     const options = {
         httpOnly : true,
@@ -122,7 +139,8 @@ const loginUser = asyncHandler(async(req,res) => {
     .json(
      new ApiResponse(
          200,{
-             user : loggedInUser,accessToken,
+            user: { id: user.id, name: user.name, email: user.email },
+            accessToken,
              refreshToken
          },
          "User logged in sucessfully"
@@ -132,7 +150,7 @@ const loginUser = asyncHandler(async(req,res) => {
 
 const logoutUser = asyncHandler(async (req,res)=>{
     const User = await defineUserModel();
-    const [update] = await User.update(
+    const [updateCount] = await User.update(
         {refreshToken:null},
         {
             where:{
@@ -141,12 +159,12 @@ const logoutUser = asyncHandler(async (req,res)=>{
         }
     );
 
-    if(update === 0){
+    if(updateCount === 0){
         throw new ApiError(400, "User not found or unable to update refresh token");
     }
 
     const options = {
-        httpOnly : true,    // cookies only modifieble by db,could not from frontend 
+        httpOnly : true,  
         secure : true
        }
 
@@ -174,7 +192,7 @@ const refreshAccessToken = asyncHandler(async(req,res) => {
     }
     const user = await User.findOne({
         where: {
-            id: decodedToken._id
+            id: decodedToken.id
         }
     });
 
@@ -186,7 +204,7 @@ const refreshAccessToken = asyncHandler(async(req,res) => {
         throw new ApiError(401, "Refresh token is expired or invalid");
     }
 
-    const { accessToken, newRefreshToken } = await generateAccessAndRefreshToken(user.id);
+    const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user.id);
     const options = {
         httpOnly: true,
         secure: true,
@@ -195,11 +213,11 @@ const refreshAccessToken = asyncHandler(async(req,res) => {
     return res
         .status(200)
         .cookie("accessToken", accessToken, options)
-        .cookie("refreshToken", newRefreshToken, options)
+        .cookie("refreshToken", refreshToken, options)
         .json(
             new ApiResponse(
                 200,
-                { accessToken, refreshToken: newRefreshToken },
+                { accessToken, refreshToken: refreshToken },
                 "Access token refreshed successfully"
             )
         );
@@ -208,11 +226,11 @@ const refreshAccessToken = asyncHandler(async(req,res) => {
 const getAllUsers = asyncHandler(async (req,res) => {
     const User = await defineUserModel();
     
-    const users = await User.findAll({
+    const user = await User.findAll({
         attributes:{exclude:['password']}
     });
 
-    if(!users || users.length === 0){
+    if(!user || user.length === 0){
         throw new ApiError(404,"No users found");
     }
 
@@ -221,33 +239,33 @@ const getAllUsers = asyncHandler(async (req,res) => {
     .json(
         new ApiResponse(
             200,
-            users,
+            user,
             "All users fetched sucessfully"
         )
     );
 });
 
-const updateAccountDetails = asyncHandler(async (req,es) =>{
-    const {username,email} = req.body;
+const updateAccountDetails = asyncHandler(async (req,res) =>{
+    const {name,email,contactNumber,role} = req.body;
 
     const User = await defineUserModel();
 
-    if(!username && !email){
-        throw new ApiError(400,"Full Name or Email is required")
+    if(!contactNumber && !email){
+        throw new ApiError(400,"Contact Number or Email is required")
     }
 
     const updateFields = {};
     if(contactNumber)updateFields.contactNumber = contactNumber;
     if(email)updateFields.email = email;
-    if(username)updateFields.username = username;
+    if(name)updateFields.name = name;
     if(role)updateFields.role = role;
 
-    const [updateROwCount,updateUser] = await User.update(updateFields,{
+    const [updateRowCount,updateUser] = await User.update(updateFields,{
         where:{id:req.user.id},
         returning: true,
     });
 
-    if(updateROwCount === 0){
+    if(updateRowCount === 0){
         throw new ApiError(404,"User not found or no fields updated")
     }
 
@@ -288,11 +306,11 @@ const deleteUser = asyncHandler(async (req,res) => {
 })
 
 const inviteNewUser = asyncHandler(async(req,res) => {
-    const { username,email,password,role } = req.body;
+    const { name,email} = req.body;
     const User = await defineUserModel();
 
-    if(!username || !email || !password || !role){
-        throw new ApiError(400,"Username,email,role and password is reequired")
+    if(!name || !email ){
+        throw new ApiError(400,"Name or Email is reequired")
     }
 
     const existingUser = await User.findOne({
@@ -306,7 +324,7 @@ const inviteNewUser = asyncHandler(async(req,res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = await User.create({
-        fullName,
+        name,
         email,
         password: hashedPassword 
     });

@@ -12,15 +12,16 @@ import {
 import {verifyJWT} from '../middlewares/auth.middleware.js';
 
 const router = Router()
-
+// public routes
 router.route("/register").post(registerUser)
 router.route("/login").post(loginUser)
+router.route("/invite-user").post(inviteNewUser)
 
-router.route("/logout").post(verifyJWT,  logoutUser)
-router.route("/refresh-token").post(refreshAccessToken)
+//private routes
+router.route("/logout").post(verifyJWT,logoutUser)
+router.route("/refresh-token").post(verifyJWT,refreshAccessToken)
 router.route("/users").get(verifyJWT,getAllUsers)
 router.route("/update").patch(verifyJWT,updateAccountDetails)
 router.route('/delete-account').delete(verifyJWT,deleteUser)
-router.route("/invite-user").post(inviteNewUser)
 
 export default router;
