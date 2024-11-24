@@ -307,11 +307,11 @@ const deleteUser = asyncHandler(async (req,res) => {
 })
 
 const inviteNewUser = asyncHandler(async(req,res) => {
-    const { email} = req.body;
+    const { email, name, role} = req.body;
     const User = await defineUserModel();
 
-    if(!email ){
-        throw new ApiError(400,"Email is reequired")
+    if(!email || !name || !role ){
+        throw new ApiError(400,"Name,Email and Role is reequired")
     }
 
     const existingUser = await User.findOne({
@@ -322,10 +322,12 @@ const inviteNewUser = asyncHandler(async(req,res) => {
         throw new ApiError(400, "User with this email already exists");
     }
 
-    const token = jwt.sign({email},process.env.JWT_SECRET,{expiresIn: '24h'})
+    const token = jwt.sign({email, name, role },process.env.JWT_SECRET,{expiresIn: '24h'})
 
     await User.create({
         email,
+        name,
+        role,
         invitationToken:token,
     });
 

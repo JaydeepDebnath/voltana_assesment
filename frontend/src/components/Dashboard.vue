@@ -31,6 +31,7 @@
         data () {
             return{
                 users:[],
+                errorMessage:null,
             };
         },
         computed:{
@@ -66,11 +67,15 @@
                 this.$router.push({name:'editUser',params:{id:user.id}});
             },
             async inviteNewUser (){
-                const email = prompt('Enter the email address of the user to invite');
-                if(email){
+              const email = prompt('Enter the email address of the user to invite');
+              const name = prompt('Enter the full name of the user');
+              const contactNumber = prompt('Enter the contact number of the user');
+              const role = prompt('Enter the role of the user (e.g., admin, user)');
+
+                if(email && name && contactNumber && role){
                     try {
-                        await this.$store.dispatch('inviteUser',email);
-                        alert('INvitation sent!');
+                        await this.$store.dispatch('inviteUser',{ email, name, contactNumber, role });
+                        alert('Invitation sent!');
                     } catch (error) {
                         this.errorMessage = error.message;
                     }

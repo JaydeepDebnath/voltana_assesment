@@ -42,6 +42,7 @@ export default createStore({
                     headers: {
                         'Content-Type':'application/json',
                     },
+                    credentials:'include',
                     body : JSON.stringify(userData),
                 });
                 const data = await response.json();
@@ -69,6 +70,7 @@ export default createStore({
                     headers: {
                         'Content-Type':'application/json',
                     },
+                    credentials:'include',
                     body:JSON.stringify(credentials),
                 });
 
@@ -121,6 +123,7 @@ export default createStore({
                     headers:{
                         'Authorization': `Bearer ${state.token}`,
                     },
+                    credentials:'include',
                 });
                 const data = await response.json();
 
@@ -148,6 +151,7 @@ export default createStore({
                     headers:{
                         'Authorization': `Bearer ${state.token}`,
                     },
+                    credentials:'include',
                 });
 
                     const data = await response.json();
@@ -174,6 +178,7 @@ export default createStore({
                         'Authorization': `Bearer ${state.token}`,
                         'Content-Type': 'application/json',
                     },
+                    credentials:'include',
                     body : JSON.stringify(userDetails)
                 });
 
@@ -217,14 +222,21 @@ export default createStore({
             }
         },
 
-        async inviteUser({commit},email){
+        async inviteUser({commit},{ email, name, contactNumber, role }){
             try {
+                const payload = {
+                    email,
+                    name,
+                    contactNumber,
+                    role
+                };
                 const response = await fetch(`${connectionString}/invite-user`,{
                     method:'POST',
                     headers:{
                         'Content-Type' :'application/json',
                     },
-                    body : JSON.stringify({email}),
+                    credentials:'include',
+                    body : JSON.stringify(payload),
                 });
 
                 const data = await response.json();
@@ -248,6 +260,7 @@ export default createStore({
                     headers:{
                         'Content-Type' :'application/json',
                     },
+                    credentials:'include',
                     body : JSON.stringify({token, password}),
                 });
 
