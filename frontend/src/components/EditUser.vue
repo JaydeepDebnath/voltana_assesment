@@ -93,34 +93,47 @@
 </script>
 
 <style scoped>
+body {
+  font-family: 'Arial', sans-serif;
+  margin: 0;
+  padding: 0;
+  background: linear-gradient(135deg, #6e7df2, #e94e77);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
 .edit-user {
   max-width: 600px;
-  margin: 0 auto;
-  padding: 20px;
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  padding: 25px;
+  background-color: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
   font-family: 'Arial', sans-serif;
+  text-align: center;
 }
 
 .edit-user h2 {
   text-align: center;
   color: #333;
-  font-size: 24px;
+  font-size: 28px;
+  font-weight: 600;
   margin-bottom: 20px;
 }
 
 form {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 20px;
 }
 
 label {
-  font-size: 14px;
-  font-weight: bold;
+  font-size: 16px;
+  font-weight: 600;
   color: #555;
-  margin-bottom: 5px;
+  margin-bottom: 8px;
   display: block;
 }
 
@@ -129,11 +142,12 @@ input[type="email"],
 input[type="tel"],
 input[type="password"] {
   width: 100%;
-  padding: 10px;
+  padding: 12px;
   border: 1px solid #ccc;
-  border-radius: 4px;
+  border-radius: 8px;
   font-size: 16px;
   box-sizing: border-box;
+  transition: border 0.3s ease;
 }
 
 input[type="text"]:focus,
@@ -145,11 +159,11 @@ input[type="password"]:focus {
 }
 
 button {
-  padding: 10px 20px;
+  padding: 12px 20px;
   background-color: #007BFF;
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
   font-size: 16px;
   cursor: pointer;
   transition: background-color 0.3s ease;
@@ -169,21 +183,21 @@ button:hover:not(:disabled) {
 .error {
   color: #d9534f;
   font-size: 14px;
-  font-weight: bold;
+  font-weight: 600;
   background-color: #f8d7da;
-  padding: 10px;
-  border-radius: 4px;
+  padding: 12px;
+  border-radius: 8px;
   border: 1px solid #d9534f;
   margin-top: 20px;
 }
 
-@media (max-width: 480px) {
+@media (max-width: 768px) {
   .edit-user {
-    padding: 15px;
+    padding: 20px;
   }
 
   .edit-user h2 {
-    font-size: 20px;
+    font-size: 28px;
   }
 
   input[type="text"],
@@ -194,4 +208,23 @@ button:hover:not(:disabled) {
     font-size: 14px;
   }
 }
+
+@media (max-width: 480px) {
+  .edit-user {
+    padding: 15px;
+  }
+
+  .edit-user h2 {
+    font-size: 24px;
+  }
+
+  input[type="text"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="password"],
+  button {
+    font-size: 14px;
+  }
+}
+
 </style>

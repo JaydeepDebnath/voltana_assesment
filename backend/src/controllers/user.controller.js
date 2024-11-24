@@ -307,11 +307,11 @@ const deleteUser = asyncHandler(async (req,res) => {
 })
 
 const inviteNewUser = asyncHandler(async(req,res) => {
-    const { name,email} = req.body;
+    const { email} = req.body;
     const User = await defineUserModel();
 
-    if(!name || !email ){
-        throw new ApiError(400,"Name or Email is reequired")
+    if(!email ){
+        throw new ApiError(400,"Email is reequired")
     }
 
     const existingUser = await User.findOne({
@@ -325,7 +325,6 @@ const inviteNewUser = asyncHandler(async(req,res) => {
     const token = jwt.sign({email},process.env.JWT_SECRET,{expiresIn: '24h'})
 
     await User.create({
-        name,
         email,
         invitationToken:token,
     });

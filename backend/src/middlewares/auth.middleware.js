@@ -6,11 +6,12 @@ import defineUserModel from '../models/user.models.js';
 export const verifyJWT = asyncHandler(async (req,res,next) => {
     const User = await defineUserModel();
     try {
-        const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "")
-        
+        let token = req.cookies?.accessToken || req.header("Authorization");
+        console.log('Token recived',token);
         if(!token) {
             throw new ApiError(401,"Unauthorized request")
         }
+
 
         const decodedToken = jwt.verify(token,process.env.JWT_SECRET)
 
@@ -24,6 +25,6 @@ export const verifyJWT = asyncHandler(async (req,res,next) => {
         next();
     }catch (err){
         console.error("Error in verifyJWT:", err);
-        throw new ApiError(401,err?.message || "Invalid Access Token")
+        throw new ApiError(401,err?.message || "Invalid Access Token");
     }
 })

@@ -5,7 +5,7 @@ const connectionString = "http://localhost:8001/api/v1/user"
 export default createStore({
     state:{
         user : null,
-        token : null,
+        token : localStorage.getItem('token') || null,
         isAuthenticated : false,
         isLoading : false,
         error : null,
@@ -15,6 +15,7 @@ export default createStore({
         state.user = user;
       },
       setToken(state,token){
+        // console.log('Setting token',token)
         state.token = token;
       },
       clearUser(state) {
@@ -28,9 +29,12 @@ export default createStore({
       setError(state, errorMessage) {
         state.error = errorMessage;
       },
+      setAuthenticated(state, isAuthenticated) {
+        state.isAuthenticated = isAuthenticated;
+    },
     },
     actions : {
-        async register({commit},userData){
+        async register({commit,dispatch},userData){
             commit('setLoading',true)
             try {
                 const response = await fetch("http://localhost:8000/api/v1/user/register",{
@@ -44,9 +48,8 @@ export default createStore({
 
                 if(response.ok){
                     commit('setError',null);
-                    commit('setLoading',false);
 
-                    dispatch('login',{
+                    await dispatch('login',{
                         email:userData.email,
                         password: userData.password,
                     });
@@ -58,7 +61,7 @@ export default createStore({
                 commit('setError',error.message);
             }
         },
-        async login({commit,dispatch},credentials){
+        async login({commit},credentials){
             commit('setLoading',true);
             try {
                 const response = await fetch(`${connectionString}/login`,{
@@ -72,10 +75,12 @@ export default createStore({
                 const data = await response.json();
 
                 if(response.ok) {
+                    console.log('Received token:', data.token);
                     commit('setToken',data.token);
                     commit('setUser',data.user);
+                    commit('setAuthenticated', true);
                     commit('setError',null);
-                    commit('setLoading',false);
+                    localStorage.setItem('token', data.token);
                 } else {
                     throw new Error (data.message || 'Login failed')
                 }
@@ -83,15 +88,18 @@ export default createStore({
             } catch (error) {
                 commit('setLoading', false);
                 commit('setError', error.message);
+                console.error("Login error:", error);
+            } finally{
+                commit('setLoading', false);
             }
         },
 
-        async logout({commit}){
+        async logout({commit,state}){
             try {
                 await fetch(`${connectionString}/logout`,{
                     method:'POST',
                     headers:{
-                        'Authorization': `Bearer ${this.state.token}`,
+                        'Authorization': `Bearer ${state.token}`,
                     }
                 });
                 
@@ -103,6 +111,10 @@ export default createStore({
         },
 
         async refreshToken ({commit,state}){
+            if (!state.token) {
+                commit('setError', 'No token available to refresh');
+                return;
+            }
             try {
                 const response = await fetch(`${connectionString}/refresh-token`,{
                     method:"POST",
@@ -119,17 +131,23 @@ export default createStore({
                 }
             } catch (error) {
                 commit('setError', error.message);
+                console.error("Token refresh error:", error);
             }
         },
         async getUsers({commit,state}){
+            console.log({...state})
             commit('setLoading',true);
+            if (!state.token) {
+                commit('setError', 'No token available to fetch users');
+                commit('setLoading', false);
+                return;
+            }
             try {
                 const response = await fetch(`${connectionString}/users`,{
                     method:'GET',
                     headers:{
                         'Authorization': `Bearer ${state.token}`,
-                    }
-                    
+                    },
                 });
 
                     const data = await response.json();
@@ -143,6 +161,7 @@ export default createStore({
             } catch (error) {
                 commit('setLoading', false);
                 commit('setError', error.message);
+                console.error("Error fetching users:", error);
             }
         },
         async updateAccountDetails({commit,state},userDetails){
